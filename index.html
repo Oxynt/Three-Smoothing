@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Demo</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+</head>
+
+<body style="margin:0px;">
+
+<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.145.0/build/three.module.js"
+    }
+
+  }
+</script>
+
+
+<script type="module">
+
+	import * as THREE from 'three';
+	import { OrbitControls } from 'https://unpkg.com/three@0.145.0/examples/jsm/controls/OrbitControls.js';
+
+	//scene
+	const scene = new THREE.Scene();
+	const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 10000);
+	camera.position.set(0, 600, 600);
+	const renderer = new THREE.WebGLRenderer({antialias: true});
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	document.body.appendChild(renderer.domElement);	
+
+	const controls = new OrbitControls( camera, renderer.domElement );
+	
+	//ambiant light
+	const ambient = new THREE.AmbientLight( 0xffffff, 0.4 );
+	scene.add( ambient );
+
+	//basic directional light	
+	const dirLight = new THREE.DirectionalLight( 0xffffff, 0.7 );
+	dirLight.position.set( 0,600,-900);
+	dirLight.castShadow = false;
+	scene.add( dirLight );
+	
+	//left heightmap texture
+	const texture = new THREE.TextureLoader().load( 'heightmap.png' );
+		texture.minFilter = THREE.LinearFilter;
+		texture.magFilter = THREE.LinearFilter;
+		
+	//left plane material 
+	const materialL = new THREE.MeshPhongMaterial( {
+		displacementMap: texture,
+		displacementScale: 100,
+		color: 0x22762c,
+		flatShading:true,
+		shininess:0,
+		wireframe:false
+	} );
+	
+	//right plane material 
+	const materialR = new THREE.MeshPhongMaterial( {
+		color: 0x22762c,
+		flatShading:true,
+		shininess:0,
+		wireframe:false
+	} );
+	
+	//left plane mesh
+	const planeGeometryL = new THREE.PlaneGeometry(1024, 2048, 1024-1, 2048-1);
+	planeGeometryL.rotateX(-Math.PI * 0.5);
+	const planeMeshL = new THREE.Mesh( planeGeometryL, materialL);
+	planeMeshL.position.set(1100,0,0);
+	scene.add(planeMeshL);
+	
+	//right plane mesh
+	const planeGeometryR = new THREE.PlaneGeometry(1024, 2048, 1024-1, 2048-1);
+	planeGeometryR.rotateX(-Math.PI * 0.5);
+	const planeMeshR = new THREE.Mesh( planeGeometryR, materialR);
+	planeMeshL.position.set(-1100,0,0);
+	scene.add(planeMeshR);
+
+	//right canvas to retrieve heightmap data
+	const canvas = document.createElement("canvas");
+	const canvasSizeW = 1024;
+	const canvasSizeH = 2048;
+	canvas.width = canvasSizeW;
+	canvas.height = canvasSizeH;
+	const ctx = canvas.getContext("2d");
+	ctx.scale(0.5, 0.5); //size is divided to match vertex numbers
+
+	//right image
+    const img = document.createElement('img');
+    img.src = 'heightmap.png';
+	img.onload = imgLoaded;
+
+	const heightData = [];
+	const heightSmooth = [];
+	
+	function imgLoaded(e){
+		
+		ctx.drawImage(img, 0, 0);
+		
+		//retrieve color data (red channel)
+		const imgd = ctx.getImageData(0, 0, canvasSizeW, canvasSizeH);
+		let pix = imgd.data;
+		let k = 0;
+		
+		for (let i = 0; i < canvasSizeH; i++) {
+			heightData[i] = [];
+			for (let j = 0; j < canvasSizeW; j++) {
+				heightData[i][j] = pix[k]/2;
+				k += 4;
+			}
+		}
+		
+		smooth();
+	}
+	
+	//only a single pass is necessary
+	function smooth(){
+
+		let x; //row
+		let z; //column
+		let k = 0.01; //smoothing value
+
+				/* Rows, left to right */
+				for(x = 1;x < heightData.length; x++){
+					for (z = 0;z < heightData[0].length; z++){
+					heightData[x][z] = heightData[x-1][z] * (1-k) + 
+							  heightData[x][z] * k;
+				}
+				}
+				
+				/* Rows, right to left*/
+		//		for(x = heightData.length-2;x < -1; x--){
+		//			for (z = 0;z < heightData[0].length; z++){
+		//			heightData[x][z] = heightData[x+1][z] * (1-k) + 
+		//					  heightData[x][z] * k;
+		//		}
+		//		}
+				/* Columns, bottom to top */
+		//		for(x = 0;x < heightData.length; x++){
+		//			for (z = 1;z < heightData[0].length; z++){
+		//			heightData[x][z] = heightData[x][z-1] * (1-k) + 
+		//					  heightData[x][z] * k;
+		//		}
+		//		}
+				
+				/* Columns, top to bottom */
+		//		for(x = 0;x < heightData.length; x++){
+		//			for (z = heightData[0].length; z < -1; z--){
+		//			heightData[x][z] = heightData[x][z+1] * (1-k) + 
+		//					  heightData[x][z] * k;
+		//		}
+		//		}
+	
+		vertexUpdate();
+	}
+	
+	function vertexUpdate(){	
+	console.log(heightData)
+	
+	let positionAttribute = planeMeshR.geometry.getAttribute( 'position' );
+
+		let m = 0;
+		for (let i = 0; i < heightData.length; i++) { //longueur
+		for (let j = 0; j < heightData[0].length; j++) { //hauteur
+			positionAttribute.setY( m, heightData[i][j]);
+			m++;
+		}}
+
+		planeMeshR.geometry.attributes.position.needsUpdate = true;
+		planeMeshR.geometry.computeVertexNormals();
+	}
+
+	renderer.setAnimationLoop( render );	
+	
+	function render(){
+		renderer.render(scene, camera);
+	}
+
+	function onWindowResize() {
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+		renderer.setSize( window.innerWidth, window.innerHeight );
+	}	
+	
+</script>
+
+
+</body>
+</html>
