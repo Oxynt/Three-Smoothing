@@ -93,7 +93,8 @@
 
 	//right image
     const img = document.createElement('img');
-    img.src = 'https://i.ibb.co/d2fkwkh/heightmap.png';
+	img.crossOrigin = "Anonymous";
+	img.src = 'https://i.ibb.co/d2fkwkh/heightmap.png';
 	img.onload = imgLoaded;
 
 	const heightData = [];
