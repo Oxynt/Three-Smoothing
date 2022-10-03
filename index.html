@@ -167,8 +167,8 @@
 	let positionAttribute = planeMeshR.geometry.getAttribute( 'position' );
 
 		let m = 0;
-		for (let i = 0; i < heightData.length; i++) { //longueur
-		for (let j = 0; j < heightData[0].length; j++) { //hauteur
+		for (let i = 0; i < heightData.length; i++) { //width
+		for (let j = 0; j < heightData[0].length; j++) { //height
 			positionAttribute.setY( m, heightData[i][j]);
 			m++;
 		}}
