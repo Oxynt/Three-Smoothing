@@ -46,7 +46,7 @@
 	scene.add( dirLight );
 	
 	//left heightmap texture
-	const texture = new THREE.TextureLoader().load( 'https://i.ibb.co/d2fkwkh/heightmap.png' );
+	const texture = new THREE.TextureLoader().load( 'heightmap.png' );
 		texture.minFilter = THREE.LinearFilter;
 		texture.magFilter = THREE.LinearFilter;
 		
@@ -94,7 +94,7 @@
 	//right image
     const img = document.createElement('img');
 	img.crossOrigin = "Anonymous";
-	img.src = 'https://i.ibb.co/d2fkwkh/heightmap.png';
+	img.src = 'heightmap.png';
 	img.onload = imgLoaded;
 
 	const heightData = [];
